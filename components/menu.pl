@@ -40,6 +40,15 @@
 :- use_module(library(ctypes)).
 :- use_module(user(user_db)).
 :- use_module(cliopatria(hooks)).
+:- use_module(library(http/http_open)).
+:- use_module(library(http/thread_httpd)).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/http_server_files)).
+:- use_module(library(http/mimetype)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_session)).
+:- use_module(library(http/http_host)).
 
 /** <module> ClioPatria menu-bar
 
@@ -63,6 +72,7 @@ match the style cliopatria(_) (see reply_html_page/3).
 %	    * cliopatria:menu_popup_order/2 defines the order of the popups
 
 cp_menu -->
+    {catch(mmake,_,true)},
 	{ findall(Key-Item, current_menu_item(Key, Item), Pairs0),
 	  sort(Pairs0, Pairs),
 	  group_pairs_by_key(Pairs, ByKey),
@@ -96,7 +106,7 @@ menu_item(item(_Rank, Spec, Label)) -->
 	  ;   Location = Spec
 	  )
 	},
-	html(li(a([href(Location)], Label))).
+	html(li(a([href(Location),target='answersframe'], Label))).
 
 
 %%	current_menu_item(-PopupKey, -Item) is nondet.
@@ -134,6 +144,8 @@ menu_item(Item, Label) :-
 	cliopatria:menu_item(Item, Label).
 
 menu_item(100=repository/load_file_form,		'Load local file').
+menu_item(150=repository/prolog_sources,		'Load Prolog file').
+
 menu_item(200=repository/load_url_form,			'Load from HTTP').
 menu_item(300=repository/load_library_rdf_form,		'Load from library').
 menu_item(400=repository/remove_statements_form,	'Remove triples').
@@ -262,4 +274,49 @@ open_id_user(User) :-
 	uri_components(User, Components),
 	uri_data(scheme, Components, Scheme),
 	nonvar(Scheme).
+
+		 /*******************************
+		 *	      prolog_sources		*
+		 *******************************/
+
+:- http_handler(root(prolog_sources),   prolog_sources,   []).
+prolog_sources(_Request) :-
+	authorized(write(default, load(posted))),
+	reply_html_page(cliopatria(plain),
+			title('Upload RDF'),
+			[ h1('Upload an RDF document'),
+
+			  p(['Upload a document using POST to /servlets/uploadData. ',
+			     'Alternatively you can use ',
+			     a(href=loadURL,loadURL), ' to load data from a \c
+			     web server.'
+			    ]),
+
+			  form([ action(location_by_id(upload_data)),
+				 method('POST'),
+				 enctype('multipart/form-data')
+			       ],
+			       [ \html_basics:hidden(resultFormat, html),
+				 table(class(form),
+				       [tr([ th(class(label), 'File:'),
+					     td(input([ name(data),
+							type(file),
+							size(50)
+						      ]))
+					   ]),
+					tr([ th(class(label), 'BaseURI:'),
+					     td(input([ name(baseURI),
+							size(50)
+						      ]))
+					   ]),
+					tr(class(buttons),
+					   [ th([align(right), colspan(2)],
+						input([ type(submit),
+							value('Upload now')
+						      ]))
+					   ])
+				       ])
+			       ])
+			]).
+
 
