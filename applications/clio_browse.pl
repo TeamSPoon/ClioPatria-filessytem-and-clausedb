@@ -26,8 +26,7 @@
     invalidate any other reasons why the executable file might be covered by
     the GNU General Public License.
 */
-:- include(clio_browse).
-end_of_file.
+
 :- module(cpa_browse,
 	  [ graph_info//1,		% +Graph
 	    graph_as_resource//2,	% +Graph, +Options
@@ -35,7 +34,6 @@ end_of_file.
 	    list_resource//2,		% +URI, +Options
 	    context_graph//2		% +URI, +Options
 	  ]).
-
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(http/html_write)).
@@ -1074,9 +1072,13 @@ list_resource(URI, Options) -->
 		    \location(URI, Graph), '"'
 		  ]),
 	       \local_view(URI, Graph, Options),
-	       p(\as_object(URI, Graph)),
+               \uri_class_info(URI, Graph),
+               \uri_predicate_info(URI, Graph),
+	           p(\as_subject(URI, Graph)),
+               p(\as_predicate(URI, Graph)),
+               p(\as_object(URI, Graph)),
 	       p(\as_graph(URI)),
-	       \uri_info(URI, Graph)
+               \uri_info(URI, Graph)
 	     ]).
 
 
@@ -1166,14 +1168,8 @@ as_object_locations([], _URI, _) --> !,
 	html([ 'The resource does not appear as an object' ]).
 as_object_locations([S-P], URI, _) --> !,
 	html([ 'The resource appears as object in one triple:',
-	       blockquote(class(triple),
-			  [ '{ ',
-			    \rdf_link(S), ', ',
-			    \rdf_link(P, []), ', ',
-			    \rdf_link(URI),
-			    ' }'
-			  ])
-	     ]).
+	       \show_triple(S,P,URI),
+	     'Foobar']).
 as_object_locations(List, URI, Graph) --> !,
 	{ length(List, Len),
 	  (   var(Graph)
@@ -1183,8 +1179,84 @@ as_object_locations(List, URI, Graph) --> !,
 	  http_link_to_id(list_triples_with_object, [r=URI|Extra], Link)
 	},
 	html([ 'The resource appears as object in ',
-	       a(href(Link), [Len, ' triples'])
+	       a(href(Link), [Len, ' triples']),
+               \show_turtle(List,object,URI)
 	     ]).
+
+
+%%	as_subject(+URI, +Graph) is det.
+%
+%	Show the places where URI is used as a subject.
+
+as_subject(URI, Graph) -->
+	{ findall(P-O, rdf(URI,P,O,Graph), Pairs),
+	  sort(Pairs, Unique)
+	},
+	as_subject_locations(Unique, URI, Graph).
+
+as_subject_locations([], _URI, _) --> !,
+	html([ 'The resource does not appear as a subject' ]).
+as_subject_locations([P-O], URI, _) --> !,
+	html([ 'The resource appears as subject in one triple:',
+	       \show_triple(URI,P,O)]).
+as_subject_locations(List, URI, Graph) --> !,
+	{ length(List, Len),
+	  (   var(Graph)
+	  ->  Extra = []
+	  ;   Extra = [graph=Graph]
+	  ),
+	  http_link_to_id(list_triples_with_literal, [r=URI|Extra], Link)
+	},
+	html([ 'The resource appears as subject in ',
+	       a(href(Link), [Len, ' triples']),
+               \show_turtle(List,subject,URI)
+	     ]).
+
+%%	as_predicate(+URI, +Graph) is det.
+%
+%	Show the places where URI is used as a predicate.
+
+as_predicate(URI, Graph) -->
+	{ findall(S-O, rdf(S,URI,O,Graph), Pairs),
+	  sort(Pairs, Unique)
+	},
+	as_predicate_locations(Unique, URI, Graph).
+
+as_predicate_locations([], _URI, _) --> !,
+	html([ 'The resource does not appear as a predicate' ]).
+as_predicate_locations([S-O], URI, _) --> !,
+	html([ 'The resource appears as predicate in one triple:',
+	       \show_triple(S,URI,O)]).
+as_predicate_locations(List, URI, Graph) --> !,
+	{ length(List, Len),
+	  (   var(Graph)
+	  ->  Extra = []
+	  ;   Extra = [graph=Graph]
+	  ),
+	  http_link_to_id(list_triples_with_literal, [r=URI|Extra], Link)
+	},
+	html([ 'The resource appears as predicate in ',
+	       a(href(Link), [Len, ' triples']),
+               \show_turtle(List,predicate,URI)
+	     ]).
+
+
+
+show_triple(S,P,O) --> 
+         html([blockquote(class(triple),
+			  [ '{ ',
+			    \rdf_link(S), ', ',
+			    \rdf_link(P, []), ', ',
+			    \rdf_link(O),
+			    ' }'
+			  ])]).
+
+show_turtle(List,Where,URI) --> html([\show_turtle_l(List,Where,URI)]).
+
+show_turtle_l([],_,_) --> {!}.
+show_turtle_l([S-P|List],object,URI)-->show_triple(S,P,URI),show_turtle_l(List,object,URI).
+show_turtle_l([P-O|List],subject,URI)-->show_triple(URI,P,O),show_turtle_l(List,subject,URI).
+show_turtle_l([S-O|List],predicate,URI)-->show_triple(S,URI,O),show_turtle_l(List,predicate,URI).
 
 %%	local_view(+URI, ?Graph, +Options) is det.
 %
@@ -1209,7 +1281,7 @@ local_view(URI, Graph, Options) -->
 	(   { Pairs \== []
 	    }
 	->  html_requires(css('rdf.css')),
-	    html(table(class(block),
+	    html(table([class(block),width("75%")],
 		       [ \lview_header(Options)
 		       | \table_rows_top_bottom(lview_row(Options, URI, Graphs),
 						Pairs,
@@ -1505,6 +1577,10 @@ transitive_context(P) :-
 	rdfs_individual_of(P, owl:'TransitiveProperty'),
 	rdf_predicate_property(P, rdfs_subject_branch_factor(BF)),
 	BF < 2.0.
+
+transitive_context(rdf:type).
+transitive_context(_).
+transitive_context(P):-rdfs_individual_of(P, owl:'Property').
 
 context(skos:related).
 context(skos:mappingRelation).
