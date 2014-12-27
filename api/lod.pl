@@ -303,7 +303,7 @@ send_graph(turtle, RDF) :-
 %		implement that if the graph is big.
 
 :- public triple_in/5.			% called from send_graph/2.
-
+:- thread_local triple_in/5.	     
 triple_in(RDF, S,P,O,_G) :-
 	member(rdf(S,P,O), RDF).
 

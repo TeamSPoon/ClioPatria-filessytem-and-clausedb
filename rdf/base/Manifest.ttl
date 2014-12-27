@@ -49,6 +49,13 @@
 	lib:mnemonic "eor" ;
 	lib:namespace eor: .
 
+
+:void
+	a lib:Namespace ;
+	lib:mnemonic "void" ;
+	lib:namespace void: .
+
+
 #	RDFS
 
 <rdfs>
@@ -138,3 +145,11 @@
 	owl:versionInfo "1.0" ;
 	lib:providesNamespace :eor ;
 	lib:usesNamespace :rdfs .
+
+<void.rdf>
+     a lib:Ontology ;
+        dcterms:title "VoiD Vocabulary" ;
+        owl:versionInfo "1.0" ;
+        lib:providesNamespace :void ;
+        lib:usesNamespace :rdfs .
+

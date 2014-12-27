@@ -74,13 +74,71 @@ send_graph(Graph, Format, MimeType) :- !,
 
 send_graph(Graph, turtle) :- !,
 	rdf_save_turtle(stream(current_output),
-			[ graph(Graph),
+			[ expand(triple_in_graph(graph(Graph))),
+                          graph(Graph),
 			  base(Graph)
 			]).
+
 send_graph(Graph, canonical_turtle) :- !,
 	rdf_save_canonical_turtle(stream(current_output), [graph(Graph)]).
 send_graph(Graph, rdfxml) :- !,
 	rdf_save(stream(current_output), [graph(Graph)]).
+
+
+% called from send_graph/2.
+:- thread_local triple_in_graph_local/5.
+:- public triple_in_graph/5.
+:- export(triple_in_graph/5).
+
+
+triple_in_graph(RDF,S,P,O,G) :- predicate_property(M:triple_in_graph_local(_,_,_,_,_),number_of_clauses(N)),N>0,!, M:triple_in_graph_local(RDF, S,P,O,G).
+triple_in_graph(RDF,S,P,O,G):- triple_in_graph(RDF,List),!,(member(rdf(S,P,O,G),List);member(rdf(S,P,O),List)).
+
+
+tst:- rdf_save_turtle(stream(current_output), [graph(mud)]).
+
+
+
+triple_in_graph(graph(G),List) :- nonvar(G),!,findall(rdf(S,P,O,G),rdf(S,P,O,G),List),!.
+triple_in_graph(G,List) :- nonvar(G),rdf_graph(G),!,findall(rdf(S,P,O,G),rdf(S,P,O,G),List),!.
+triple_in_graph(List,List) :- member(rdf(_,_,_,_),List),!.
+triple_in_graph(List,List) :- member(rdf(_,_,_),List),!.
+triple_in_graph(rdf(S,P,O),List) :- findall(rdf(S,P,O,G),rdf(S,P,O,G:_),List),!.
+triple_in_graph(rdf(S,P,O,Gf),List) :- ((Gf=GN:N)-> Gf=GN:N ; (Gf=GN,N=_)),  !, findall(rdf(S,P,O,GN),rdf(S,P,O,GN:N),List),!.
+triple_in_graph(triples_with(Triples,ValuesNeeded),List):- triple_in_graph(Triples,InitList),!,triples_with_values(InitList,ValuesNeeded,List).
+
+
+triples_with_values(InitList,ValuesNeeded,TriplesKeptO):-
+   triples_with_values_list(InitList,ValuesNeeded,[],NewValuesList,TriplesKept,TriplesUnkept),
+   ((NewValuesList == []) -> TriplesKeptO = TriplesKept;
+   (triples_with_values(TriplesUnkept,NewValuesList,NewTriplesKept),append(TriplesKept,NewTriplesKept,TriplesKeptO))).
+
+
+add_to_list(ValuesNeeded,P,NewValuesIn,NewValuesOut):- 
+    member(P,ValuesNeeded) -> NewValuesIn=NewValuesOut;
+     member(P,NewValuesIn) -> NewValuesIn=NewValuesOut;
+      [P|NewValuesIn]=NewValuesOut.
+
+triples_with_values_list([],_,NewValuesInOut,NewValuesInOut,[],[]):-!.
+
+triples_with_values_list([rdf(S,P,O,G)|InitList],ValuesNeeded,NewValuesIn,NewValuesOutO,[rdf(S,P,O,G)|TriplesKept],TriplesUnkept):-
+           member(S,ValuesNeeded), 
+            % add_to_list(ValuesNeeded,P,NewValuesIn,NewValuesMid),
+            % add_to_list(ValuesNeeded,O,NewValuesMid,NewValuesOut),
+        triples_with_values_list(InitList,ValuesNeeded,NewValuesIn,NewValuesOutO,TriplesKept,TriplesUnkept).
+
+triples_with_values_list([rdf(S,P,O,G)|InitList],ValuesNeeded,NewValuesIn,NewValuesOutO,[rdf(S,P,O,G)|TriplesKept],TriplesUnkept):-
+      member(P,ValuesNeeded), add_to_list(ValuesNeeded,S,NewValuesIn,NewValuesOut), % add_to_list(ValuesNeeded,O,NewValuesMid,NewValuesOut),
+   triples_with_values_list(InitList,ValuesNeeded,NewValuesOut,NewValuesOutO,TriplesKept,TriplesUnkept).
+
+triples_with_values_list([rdf(S,P,O,G)|InitList],ValuesNeeded,NewValuesIn,NewValuesOutO,[rdf(S,P,O,G)|TriplesKept],TriplesUnkept):-
+      member(O,ValuesNeeded), add_to_list(ValuesNeeded,S,NewValuesIn,NewValuesMid), % add_to_list(ValuesNeeded,P,NewValuesMid,NewValuesOut),
+   triples_with_values_list(InitList,ValuesNeeded,NewValuesMid,NewValuesOutO,TriplesKept,TriplesUnkept).
+
+triples_with_values_list([rdf(S,P,O,G)|InitList],ValuesNeeded,NewValuesIn,NewValuesOut,TriplesKept,[rdf(S,P,O,G)|TriplesUnkept]):-
+      triples_with_values_list(InitList,ValuesNeeded,NewValuesIn,NewValuesOut,TriplesKept,TriplesUnkept).
+        
+
 
 default_mime_type(turtle, text/turtle).
 default_mime_type(canonical_turtle, text/turtle).

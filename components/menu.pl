@@ -72,7 +72,7 @@ match the style cliopatria(_) (see reply_html_page/3).
 %	    * cliopatria:menu_popup_order/2 defines the order of the popups
 
 cp_menu -->
-    {catch(mmake,_,true)},
+    {catch(mmake,_,catch(make,_,true))},
 	{ findall(Key-Item, current_menu_item(Key, Item), Pairs0),
 	  sort(Pairs0, Pairs),
 	  group_pairs_by_key(Pairs, ByKey),

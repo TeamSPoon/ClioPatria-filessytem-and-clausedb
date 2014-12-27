@@ -87,5 +87,25 @@ json_prefixes(_Request) :-
 	findall(Prefix-URI,
 		rdf_current_ns(Prefix, URI),
 		Pairs),
-	dict_pairs(Dict, prefixes, Pairs),
+        swish_config:remove_duplicate_ids(Pairs,Unique),
+	dict_pairs(Dict, prefixes, Unique),
 	reply_json(Dict).
+
+
+remove_duplicate_key_values([], []).
+remove_duplicate_key_values([Id-Path1,Id-Path2|T], [Id-Path1|Cleaned]) :- !,
+	same_hkeys(T, Id, T1, Paths0),
+	sort([Path1,Path2|Paths0], Unique),
+	(   Unique = [_]
+	->  true
+	;   print_message(warning, http(duplicate_handlers(Id, Unique)))
+	),
+	remove_duplicate_key_values(T1, Cleaned).
+remove_duplicate_key_values([H|T0], [H|T]) :-
+	remove_duplicate_key_values(T0, T).
+
+same_hkeys([], _, [], []).
+same_hkeys([Id-Path|T0], Id, T, [Path|TP]) :- !,
+	same_hkeys(T0, Id, T, TP).
+same_hkeys(T, _, T, []).
+

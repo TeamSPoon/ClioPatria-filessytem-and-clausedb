@@ -167,10 +167,17 @@ graph_row(Graph) -->
 	       \nc('~D', Count)
 	     ]).
 
-graph_link(Graph) -->
-	{ http_link_to_id(list_graph, [graph=Graph], URI)
-	},
-	html(a(href(URI), Graph)).
+dcg_for_list(List,_,_) --> {not(is_list(List)),!,fail}.
+dcg_for_list([],_,_)   --> {!},[].
+dcg_for_list([V|List],E,ECall) --> {copy_term(E-ECall,CE-CECall),CE=V},CECall,{!},dcg_for_list(List,E,ECall).
+
+graph_link(Graph) --> {var(Graph),!},[].
+graph_link(Graphs) --> dcg_for_list(Graphs,E,graph_link(E)),{!}.
+graph_link(Graph:N) --> {number(N),!,file_base_name(Graph,GraphSF)},http_id_link(list_graph, [graph=Graph],[GraphSF,:,N]).
+graph_link(Graph) --> http_id_link(list_graph, [graph=Graph],[Graph]).
+
+http_id_link(Page,Options,Text) --> { http_link_to_id(Page, Options, URI) ,ignore(Text==sdfsdfsdf)}, html(a(href(URI), Text)),html([' ',' ']).
+
 
 %%	list_graph(+Request)
 %
@@ -186,7 +193,9 @@ list_graph(Request) :-
 	->  true
 	;   existence_error(graph, Graph)
 	),
-	reply_html_page(cliopatria(default),
+        (findall(Pred, predicate_in_graph(Graph, Pred), Preds),
+         sort_by_label(Preds, Sorted),
+	 reply_html_page(cliopatria(default),
 			title('RDF Graph ~w'-[Graph]),
 			[ h1('Summary information for graph "~w"'-[Graph]),
 			  \simple_search_form([ id(ac_find_in_graph),
@@ -195,8 +204,10 @@ list_graph(Request) :-
 					      ]),
 			  \graph_info(Graph),
 			  \graph_as_resource(Graph, []),
-			  \graph_actions(Graph)
-			]).
+			  \graph_actions(Graph),			                          
+                          \predicate_table(Sorted, Graph, []),
+                          \insert_text_file_with_line_numbers(Graph,Request)
+			])).
 
 %%	graph_info(+Graph)//
 %
@@ -1074,9 +1085,9 @@ list_resource(URI, Options) -->
 	       \local_view(URI, Graph, Options),
                \uri_class_info(URI, Graph),
                \uri_predicate_info(URI, Graph),
-	           p(\as_subject(URI, Graph)),
-               p(\as_predicate(URI, Graph)),
-               p(\as_object(URI, Graph)),
+	       p(\as_spo(subject,1,URI, Graph)),
+               p(\as_spo(predicate,2,URI,Graph)),
+               p(\as_spo(object,3,URI,Graph)),
 	       p(\as_graph(URI)),
                \uri_info(URI, Graph)
 	     ]).
@@ -1154,109 +1165,58 @@ as_graph(URI) -->
 		'.']).
 
 
-%%	as_object(+URI, +Graph) is det.
-%
-%	Show the places where URI is used as an object.
 
-as_object(URI, Graph) -->
-	{ findall(S-P, rdf(S,P,URI,Graph), Pairs),
-	  sort(Pairs, Unique)
-	},
-	as_object_locations(Unique, URI, Graph).
-
-as_object_locations([], _URI, _) --> !,
-	html([ 'The resource does not appear as an object' ]).
-as_object_locations([S-P], URI, _) --> !,
-	html([ 'The resource appears as object in one triple:',
-	       \show_triple(S,P,URI),
-	     'Foobar']).
-as_object_locations(List, URI, Graph) --> !,
-	{ length(List, Len),
-	  (   var(Graph)
-	  ->  Extra = []
-	  ;   Extra = [graph=Graph]
-	  ),
-	  http_link_to_id(list_triples_with_object, [r=URI|Extra], Link)
-	},
-	html([ 'The resource appears as object in ',
-	       a(href(Link), [Len, ' triples']),
-               \show_turtle(List,object,URI)
-	     ]).
-
-
-%%	as_subject(+URI, +Graph) is det.
+%%	as_spo(+Subject,+URI, +Graph) is det.
 %
 %	Show the places where URI is used as a subject.
 
-as_subject(URI, Graph) -->
-	{ findall(P-O, rdf(URI,P,O,Graph), Pairs),
-	  sort(Pairs, Unique)
+as_spo(Subject,URIOn,URI, Graph) -->
+	{ 
+         arg(URIOn,rdf(S,P,O,Graph),URI),
+         findall(rdf(S,P,O),rdf(S,P,O,Graph), Pairs),
+	 sort(Pairs, Unique)
 	},
-	as_subject_locations(Unique, URI, Graph).
+	as_spo_locations(Subject,Unique, URI, Graph).
 
-as_subject_locations([], _URI, _) --> !,
-	html([ 'The resource does not appear as a subject' ]).
-as_subject_locations([P-O], URI, _) --> !,
-	html([ 'The resource appears as subject in one triple:',
-	       \show_triple(URI,P,O)]).
-as_subject_locations(List, URI, Graph) --> !,
+as_spo_locations(Subject,[], _URI, _) --> !,
+	html([ 'The resource does not appear as a ',Subject]).
+as_spo_locations(Subject,[RDF], _URI, Graph) --> !,
+	html([ 'The resource appears as ',Subject,' in one triple:',
+	       \show_triple(RDF,Graph)]).
+as_spo_locations(Subject,List, URI, Graph) --> !,
 	{ length(List, Len),
 	  (   var(Graph)
 	  ->  Extra = []
 	  ;   Extra = [graph=Graph]
 	  ),
-	  http_link_to_id(list_triples_with_literal, [r=URI|Extra], Link)
+	  http_link_to_id(list_triples_with_literal, [q=URI|Extra], _Link)
 	},
-	html([ 'The resource appears as subject in ',
-	       a(href(Link), [Len, ' triples']),
-               \show_turtle(List,subject,URI)
+	html([ 'The resource appears as ',Subject,' in ',
+	       Len, ' triples',
+               \show_turtle(List,Subject,URI,Graph)
 	     ]).
 
-%%	as_predicate(+URI, +Graph) is det.
-%
-%	Show the places where URI is used as a predicate.
+show_turtle(List,Where,URI,Graph) --> html([\show_turtle_l(List,Where,URI,Graph)]).
 
-as_predicate(URI, Graph) -->
-	{ findall(S-O, rdf(S,URI,O,Graph), Pairs),
-	  sort(Pairs, Unique)
-	},
-	as_predicate_locations(Unique, URI, Graph).
-
-as_predicate_locations([], _URI, _) --> !,
-	html([ 'The resource does not appear as a predicate' ]).
-as_predicate_locations([S-O], URI, _) --> !,
-	html([ 'The resource appears as predicate in one triple:',
-	       \show_triple(S,URI,O)]).
-as_predicate_locations(List, URI, Graph) --> !,
-	{ length(List, Len),
-	  (   var(Graph)
-	  ->  Extra = []
-	  ;   Extra = [graph=Graph]
-	  ),
-	  http_link_to_id(list_triples_with_literal, [r=URI|Extra], Link)
-	},
-	html([ 'The resource appears as predicate in ',
-	       a(href(Link), [Len, ' triples']),
-               \show_turtle(List,predicate,URI)
-	     ]).
+show_turtle_l([],_,_,_) --> {!}.
+show_turtle_l([RDF|List],Subject,URI,Graph)-->show_triple(RDF,Graph),show_turtle_l(List,Subject,URI,Graph).
 
 
 
-show_triple(S,P,O) --> 
+show_triple(rdf(S,P,O),Graph) --> show_triple(rdf(S,P,O,Graph)).
+
+show_triple(rdf(S,P,O,Graph)) --> {var(Graph) -> findall(G,(rdf(S,P,O,G)),Graphs);(findall(G,(rdf(S,P,O,G),Graph\==G),GL),Graphs=[Graph|GL])},
          html([blockquote(class(triple),
 			  [ '{ ',
-			    \rdf_link(S), ', ',
-			    \rdf_link(P, []), ', ',
-			    \rdf_link(O),
-			    ' }'
-			  ])]).
+			    \rdf_link(S), ' ',
+			    \rdf_link(P, []), ' ',
+			    \rdf_link(O),                            
+			    ' .}   ', 
+                            \when_true(Graphs\=[],graph_link(Graphs)), 
+			  ' '])]).
 
-show_turtle(List,Where,URI) --> html([\show_turtle_l(List,Where,URI)]).
-
-show_turtle_l([],_,_) --> {!}.
-show_turtle_l([S-P|List],object,URI)-->show_triple(S,P,URI),show_turtle_l(List,object,URI).
-show_turtle_l([P-O|List],subject,URI)-->show_triple(URI,P,O),show_turtle_l(List,subject,URI).
-show_turtle_l([S-O|List],predicate,URI)-->show_triple(S,URI,O),show_turtle_l(List,predicate,URI).
+when_true(Call,Do)-->{Call,!},Do.
+when_true(_,_)-->[].
 
 %%	local_view(+URI, ?Graph, +Options) is det.
 %
@@ -1565,7 +1525,9 @@ context_triple(URI, rdf(S, P, URI)) :-
 
 parents(URI, Up, [rdf(URI, P, Parent)|T], Visited, MaxD) :-
 	succ(MaxD2, MaxD),
+        vrdf_o(Up),
 	rdf_has(URI, Up, Parent, P),
+        vrdf_o(Up),
 	\+ memberchk(Parent, Visited),
 	parents(Parent, Up, T, [Parent|Visited], MaxD2).
 parents(_, _, [], _, _).
@@ -1574,16 +1536,20 @@ transitive_context(rdfs:subClassOf).
 transitive_context(rdfs:subPropertyOf).
 transitive_context(skos:broader).
 transitive_context(P) :-
-	rdfs_individual_of(P, owl:'TransitiveProperty'),
+	rdfs_individual_of(P, owl:'TransitiveProperty'),irdf_o(P),
 	rdf_predicate_property(P, rdfs_subject_branch_factor(BF)),
 	BF < 2.0.
 
 transitive_context(rdf:type).
-transitive_context(_).
-transitive_context(P):-rdfs_individual_of(P, owl:'Property').
+transitive_context(A):- irdf_o(A).
+transitive_context(P):- vrdf_o(P),rdfs_individual_of(P, owl:'Property'),irdf_o(P).
 
 context(skos:related).
 context(skos:mappingRelation).
+
+
+irdf_o(P):-compound(P)->functor(P,_,2);atomic(P).
+vrdf_o(P):-var(P);irdf_o(P).
 
 %%	list_triples(+Request)
 %
@@ -2184,3 +2150,69 @@ turtle_prefixes([], _) --> [].
 turtle_prefixes([Prefix-URI|T], Col) -->
 	html('@prefix ~t~w: ~*|<~w> .~n'-[Prefix, Col, URI]),
 	turtle_prefixes(T, Col).
+
+
+graph_to_dirfile(FO,F):-atom_concat('file://',F,FO),!.
+graph_to_dirfile(F,F).
+
+
+insert_text_file_with_line_numbers(Graph,Request)--> {graph_to_dirfile(Graph,File)},   
+   insert_text_file_with_line_numbers(Graph,File,Request).
+% insert_text_file_with_line_numbers(_Graph,_File,_Request)-->[].
+
+insert_text_file_with_line_numbers(_Graph,File,_Request) -->
+ {sformat(String,'/help/source/doc~w?format_comments=false&show=src',[File])}, 
+   html([a([href(String)],[p(String)]),iframe([src(String),width("100%"),height("800")],[])]).
+
+end_of_file.
+
+insert_text_file_with_line_numbers(Graph,Request)--> {
+   catch(( graph_to_dirfile(Graph,File),
+   % pldoc_http:documentation(File, Request),
+  FormatComments = false,
+  Show = src,
+   any_source_to_html(File, stream(current_output), [ skin(src_skin(Request, Show, FormatComments)), format_comments(FormatComments) ])
+
+                     ),E,dmsg(E:Graph))},[].
+
+
+any_source_to_html(Src, stream(Out), MOptions) :- !, 
+ pldoc_htmlsrc:((
+	meta_options(pldoc_htmlsrc:is_meta, MOptions, Options),
+	(   option(title(_), Options)
+	->  HeadOptions = Options
+	;   file_base_name(Src, Title),
+	    HeadOptions = [title(Title)|Options]
+	),
+	retractall(lineno),		% play safe
+	retractall(nonl),		% play safe
+	retractall(id(_)),
+	cpa_browse:any_colour_fragments(Src, Fragments),
+	setup_call_cleanup(
+	    ( open_source(Src, In),
+	      asserta(user:thread_message_hook(_,_,_), Ref)
+	    ),
+	    (  % print_html_head(Out, HeadOptions),
+	      html_fragments(Fragments, In, Out, [], State, Options),
+	      copy_rest(In, Out, State, State1),
+	      pop_state(State1, Out, In)
+	    ),
+	    ( erase(Ref),
+	      close(In)
+	    )))).
+
+any_colour_fragments(Source, Fragments) :-
+ pldoc_colours:((
+     F = fragment(_,_,_),
+     retractall(F),
+     prolog_canonical_source(Source, SourceID),
+     xref_source(SourceID, [silent(true)]),
+     setup_call_cleanup(
+         prolog_open_source(SourceID, Stream),
+         prolog_colourise_stream(Stream, SourceID, assert_fragment),
+         prolog_close_source(Stream),
+         !),
+     findall(F, retract(F), Fragments0),
+     sort(Fragments0, Fragments1),
+     fragment_hierarchy(Fragments1, Fragments) )).
+
