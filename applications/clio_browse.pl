@@ -103,6 +103,8 @@ that allow back-office applications to reuse this infrastructure.
 :- http_handler(rdf_browser(list_prefixes),   list_prefixes,   []).
 :- http_handler(rdf_browser(search),          search,	       []).
 
+:- http_handler(rdf_browser(write_owl),   write_owl,   []).
+
 
 :- meta_predicate
 	table_rows(3, +, ?, ?),
@@ -2158,61 +2160,74 @@ graph_to_dirfile(F,F).
 
 insert_text_file_with_line_numbers(Graph,Request)--> {graph_to_dirfile(Graph,File)},   
    insert_text_file_with_line_numbers(Graph,File,Request).
-% insert_text_file_with_line_numbers(_Graph,_File,_Request)-->[].
 
 insert_text_file_with_line_numbers(_Graph,File,_Request) -->
- {sformat(String,'/help/source/doc~w?format_comments=false&show=src',[File])}, 
+ {exists_file(File),sformat(String,'/help/source/doc~w?format_comments=false&show=src',[File])}, 
    html([a([href(String)],[p(String)]),iframe([src(String),width("100%"),height("800")],[])]).
 
-end_of_file.
-
-insert_text_file_with_line_numbers(Graph,Request)--> {
-   catch(( graph_to_dirfile(Graph,File),
-   % pldoc_http:documentation(File, Request),
-  FormatComments = false,
-  Show = src,
-   any_source_to_html(File, stream(current_output), [ skin(src_skin(Request, Show, FormatComments)), format_comments(FormatComments) ])
-
-                     ),E,dmsg(E:Graph))},[].
+% maybe use export_graph_schema?
+insert_text_file_with_line_numbers(Graph,_File,_Request) -->  
+ {sformat(String,'/browse/write_owl?graph=~w&mimetype=default&format=trig',[Graph])}, 
+   html([a([href(String)],[p(String)]),iframe([src(String),width("100%"),height("800")],[])]).
 
 
-any_source_to_html(Src, stream(Out), MOptions) :- !, 
- pldoc_htmlsrc:((
-	meta_options(pldoc_htmlsrc:is_meta, MOptions, Options),
-	(   option(title(_), Options)
-	->  HeadOptions = Options
-	;   file_base_name(Src, Title),
-	    HeadOptions = [title(Title)|Options]
-	),
-	retractall(lineno),		% play safe
-	retractall(nonl),		% play safe
-	retractall(id(_)),
-	cpa_browse:any_colour_fragments(Src, Fragments),
-	setup_call_cleanup(
-	    ( open_source(Src, In),
-	      asserta(user:thread_message_hook(_,_,_), Ref)
-	    ),
-	    (  % print_html_head(Out, HeadOptions),
-	      html_fragments(Fragments, In, Out, [], State, Options),
-	      copy_rest(In, Out, State, State1),
-	      pop_state(State1, Out, In)
-	    ),
-	    ( erase(Ref),
-	      close(In)
-	    )))).
+write_owl_param(graph,
+	   [ description('Name of the graph')]).
+write_owl_param(format,
+	   [ oneof([turtle,
+		    canonical_turtle,
+		    rdfxml,
+                    trig,
+                    ntriples
+		   ]),
+	     default(turtle),
+	     description('Output serialization')
+	   ]).
+write_owl_param(mimetype,
+	   [ default(default),
+	     description('MIME-type to use. If "default", it depends on format')
+	   ]).
 
-any_colour_fragments(Source, Fragments) :-
- pldoc_colours:((
-     F = fragment(_,_,_),
-     retractall(F),
-     prolog_canonical_source(Source, SourceID),
-     xref_source(SourceID, [silent(true)]),
-     setup_call_cleanup(
-         prolog_open_source(SourceID, Stream),
-         prolog_colourise_stream(Stream, SourceID, assert_fragment),
-         prolog_close_source(Stream),
-         !),
-     findall(F, retract(F), Fragments0),
-     sort(Fragments0, Fragments1),
-     fragment_hierarchy(Fragments1, Fragments) )).
+write_owl(Request) :-
+	http_parameters(Request,
+			[ graph(Graph),
+			  format(Format),
+			  mimetype(Mime)
+			],
+			[  attribute_declarations(write_owl_param)
+			]
+		       ),
+	authorized(read(default, download(Graph))),
+	send_owl(Graph, Format, Mime).
+
+default_mime_type(turtle, text/turtle).
+default_mime_type(canonical_turtle, text/turtle).
+default_mime_type(rdfxml, text/turtle).
+default_mime_type(rdfxml, application/'rdf+xml').
+default_mime_type(_, text/turtle).
+
+send_owl(Graph, Format, default) :- !,
+       default_mime_type(Format, MimeType),
+	send_owl(Graph, Format, MimeType).
+
+send_owl(Graph, Format, MimeType) :- !,
+	format('Transfer-Encoding: chunked~n'),
+	format('Content-type: ~w; charset=UTF8~n~n', [MimeType]),
+	send_owl(Graph, Format).
+
+send_owl(Graph, turtle) :- !,
+	rdf_save_turtle(stream(current_output),
+			[ expand(api_export:triple_in_graph(graph(Graph))),
+                          graph(Graph),
+			  base(Graph)
+			]).
+
+send_owl(Graph, canonical_turtle) :- !,
+	rdf_save_canonical_turtle(stream(current_output), [graph(Graph)]).
+send_owl(Graph, rdfxml) :- !,
+	rdf_save(stream(current_output), [graph(Graph)]).
+send_owl(Graph, trig) :- !,
+	rdf_save_trig(stream(current_output), [graph(Graph),graphs([Graph])]).
+send_owl(Graph, ntriples) :- !,
+	rdf_save_ntriples(stream(current_output), [graph(Graph),graphs([Graph])]).
 
