@@ -42,6 +42,10 @@ At least for now, the system  has   been  named  bundle because the name
 package is already used as a package of software.
 */
 
+
+:- dynamic   user:file_search_path/2.
+:- multifile user:file_search_path/2.
+
 :- multifile
 	user:file_search_path/2,
 	system:term_expansion/2,
