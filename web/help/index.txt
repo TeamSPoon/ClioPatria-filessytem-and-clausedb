@@ -22,11 +22,13 @@ loaded RDF.
     * Download.txt ClioPatria
     * Add [[packages][cpack/Finding.txt]] to ClioPatria
     * Install.txt or restart.txt ClioPatria
+    * Run ClioPatria as a (Unix daemon) service.txt
     * About ClioPatria versions.txt.
 
   * *|Using ClioPatria|*
     * Howto [[load RDF][howto/LoadRDF.txt]] into ClioPatria
     * [[Exploring RDF][howto/ExploreRDF.txt]] with ClioPatria
+    * Howto perform [full-text search](howto/fulltext.txt) with ClioPatria
     * [[Supported browsers][Browsers.txt]]
     * Provide howto/LOD.txt (Linked Open Data) services from ClioPatria
     * [[Client authentication][howto/ClientAuth.txt]] to access

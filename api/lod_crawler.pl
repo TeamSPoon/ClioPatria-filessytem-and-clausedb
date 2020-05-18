@@ -1,36 +1,41 @@
 /*  Part of ClioPatria SeRQL and SPARQL server
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam,
-		   VU University Amsterdam
+    Copyright (c)  2010-2018, University of Amsterdam,
+                              VU University Amsterdam
+    All rights reserved.
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
 
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
 
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 :- module(api_lod_crawler,
-	  [ lod_uri_graph/2
-	  ]).
+          [ lod_uri_graph/2
+          ]).
 :- use_module(library(uri)).
 :- use_module(library(semweb/rdf_db)).
 :- use_module(library(http/http_dispatch)).
@@ -40,47 +45,49 @@
 
 :- http_handler(api(lod_crawl), lod_crawl, []).
 
-%%	lod_crawl(+Request)
+%!  lod_crawl(+Request)
 %
-%	HTTP handler requesting ClioPatria to crawl LOD.
+%   HTTP handler requesting ClioPatria to crawl LOD.
 
 lod_crawl(Request) :-
-	authorized(write(default, load(lod))),
-	http_parameters(Request,
-			[ r(URI,
-			    [ description('URI to start')
-			    ]),
-			  return_to(Return,
-				    [ optional(true),
-				      description('URI to return to')
-				    ])
-			]),
-	lod_uri_graph(URI, Graph),
-	return_option(Return, Options),
-	call_showing_messages(rdf_load(Graph,
-				       [ graph(Graph)
-				       ]),
-			      Options).
+    authorized(write(default, load(lod))),
+    http_parameters(Request,
+                    [ r(URI,
+                        [ description('URI to start')
+                        ]),
+                      return_to(Return,
+                                [ optional(true),
+                                  description('URI to return to')
+                                ])
+                    ]),
+    lod_uri_graph(URI, Graph),
+    return_option(Return, Options),
+    call_showing_messages(rdf_load(Graph,
+                                   [ graph(Graph)
+                                   ]),
+                          Options).
 
 return_option(Return, []) :-
-	var(Return), !.
+    var(Return),
+    !.
 return_option(Return, [ return_to(Return) ]).
 
 
-%%	lod_uri_graph(+URI, -Graph)
+%!  lod_uri_graph(+URI, -Graph)
 %
-%	Determine the graph in which to dump   LOD from URI. This simply
-%	deletes a possible fragment (#...) from the URI.
+%   Determine the graph in which to dump   LOD from URI. This simply
+%   deletes a possible fragment (#...) from the URI.
 
 lod_uri_graph(URI, Graph) :-
-	uri_components(URI, Components),
-	uri_data(fragment, Components, Fragment),
-	nonvar(Fragment), !,
-	uri_data(fragment, Components, _, NewComponents),
-	uri_components(Graph, NewComponents).
+    uri_components(URI, Components),
+    uri_data(fragment, Components, Fragment),
+    nonvar(Fragment),
+    !,
+    uri_data(fragment, Components, _, NewComponents),
+    uri_components(Graph, NewComponents).
 lod_uri_graph(URI, URI).
 
 :- multifile
-	rdf_http_plugin:rdf_content_type/2.
+    rdf_http_plugin:rdf_content_type/2.
 
 rdf_http_plugin:rdf_content_type('text/xml', xml).

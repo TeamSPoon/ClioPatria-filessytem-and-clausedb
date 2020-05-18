@@ -103,7 +103,6 @@ that allow back-office applications to reuse this infrastructure.
 :- http_handler(rdf_browser(list_prefixes),   list_prefixes,   []).
 :- http_handler(rdf_browser(search),          search,	       []).
 
-:- http_handler(rdf_browser(write_owl),   write_owl,   []).
 
 
 :- meta_predicate
@@ -253,7 +252,7 @@ predicate_in_graph(Graph, P) :-
 	rdf_current_predicate(P),
 	once(rdf(_,P,_,Graph)).
 
-%%	subject_in_graph(+Graph, -Subject)
+%!  subject_in_graph(+Graph, -Subject)
 %
 %	Generate the distinct subjects in a graph. There are two ways to
 %	do this: first the subjects and then  whether they appear in the
@@ -263,7 +262,8 @@ predicate_in_graph(Graph, P) :-
 subject_in_graph(Graph, S) :-
 	graph_triples(Graph, Count),
 	rdf_statistics(triples(Total)),
-	Count * 10 > Total, !,		% Graph has more than 10% of triples
+    Count * 10 > Total,            % Graph has more than 10% of triples
+    !,
 	rdf_subject(S),
 	once(rdf(S, _, _, Graph)).
 subject_in_graph(Graph, S) :-
@@ -274,7 +274,8 @@ subject_in_graph(Graph, S) :-
 bnode_in_graph(Graph, S) :-
 	graph_triples(Graph, Count),
 	rdf_statistics(triples(Total)),
-	Count * 10 > Total, !,
+    Count * 10 > Total,
+    !,
 	rdf_subject(S),
 	rdf_is_bnode(S),
 	once(rdf(S, _, _, Graph)).
@@ -285,7 +286,7 @@ bnode_in_graph(Graph, S) :-
 
 
 
-%%	type_in_graph(+Graph, -Class)
+%!  type_in_graph(+Graph, -Class)
 %
 %	Generate the unique types in Graph
 
@@ -334,6 +335,26 @@ li_delete_graph(Graph) -->
 		     ]))).
 li_delete_graph(_) --> [].
 
+li_persistent_graph(Graph) -->
+    { logged_on(User),
+      catch(check_permission(User, write(_, persistent(Graph))), _, fail),
+      !,
+      http_link_to_id(modify_persistency, [], Action),
+      (   rdf_graph_property(Graph, persistent(true))
+      ->  Op = (volatile),   Value = off
+      ;   Op = (persistent), Value = on
+      )
+    },
+    !,
+    html(li(form(action(Action),
+                 [ input([type(hidden), name(graph), value(Graph)]),
+                   input([type(hidden), name(resultFormat), value(html)]),
+                   input([type(hidden), name(persistent), value(Value)]),
+                   'Make this graph ',
+                   input([class(gaction), type(submit), value(Op)])
+                 ]))).
+li_persistent_graph(_) --> [].
+
 li_schema_graph(Graph) -->
 	{ http_link_to_id(export_graph_schema, [], Action),
 	  download_options(show, Label, MimeType, Title)
@@ -378,7 +399,7 @@ dl_format_menu -->
 		    ])).
 
 
-%%	list_classes(+Request)
+%!  list_classes(+Request)
 %
 %	HTTP handler that lists all classes  of all subjects that appear
 %	in the named graph. The  output  is   an  HTML  page holding all
@@ -413,7 +434,8 @@ class_table_header -->
 		])).
 
 class_row(Graph, Class) -->
-	{ atom(Class), !,
+    { atom(Class),
+      !,
 	  findall(I, rdf_has(I, rdf:type, Class, Graph), IL),
 	  sort(IL, Classes),
 	  length(Classes, InstanceCount)
@@ -426,11 +448,11 @@ class_row(Graph, Class-InstanceCount) -->
 	  ),
 	  http_link_to_id(list_instances, Params, ILink)
 	},
-	html([ td(\rdf_link(Class)),
+    html([ td(\rdf_link(Class, [role(class)])),
 	       td(class(int), a(href(ILink), InstanceCount))
 	     ]).
 
-%%	types_in_graph(+Graph, -Map:list(Type-InstanceCount))
+%!  types_in_graph(+Graph, -Map:list(Type-InstanceCount))
 %
 %	Generate a map of all types that appear in Graph with a count on
 %	the number of instances.
@@ -444,7 +466,8 @@ types_in_graph(Graph, Map) :-
 
 types([], []).
 types([S|T0], Types) :-
-	call_det(type_of(S,C), Det), !,
+    call_det(type_of(S,C), Det),
+    !,
 	(   Det == true
 	->  Types = [S-C|T],
 	    types(T0, T)
@@ -474,25 +497,29 @@ call_det(G, Det) :-
 instance_count(Type-Instances, Type-Count) :-
 	length(Instances, Count).
 
-%%	instance_in_graph(?Graph, ?Class, +Type,
-%%			  -Subject, -PropertyCount) is nondet.
+%!  instance_in_graph(?Graph, ?Class, +Type,
+%!                    -Subject, -PropertyCount) is nondet.
 %
 %	True of Subject is  an  instance   of  Class  with PropertyCount
 %	properties provided from Graph.
 
-instance_in_graph(Graph, Class, any, S, C) :- !,
+instance_in_graph(Graph, Class, any, S, C) :-
+    !,
 	instance_in_graph(Graph, Class, S, C).
-instance_in_graph(Graph, Class, bnode, S, C) :- !,
+instance_in_graph(Graph, Class, bnode, S, C) :-
+    !,
 	freeze(S, rdf_is_bnode(S)),
 	instance_in_graph(Graph, Class, S, C).
 
 
 instance_in_graph(Graph, Class, S, C) :-
-	var(Class), !,
+    var(Class),
+    !,
 	subject_in_graph(Graph, S),
 	property_count(Graph, S, C).
 instance_in_graph(Graph, Class, S, C) :-
-	rdf_equal(Class, rdfs:'Resource'), !,
+    rdf_equal(Class, rdfs:'Resource'),
+    !,
 	(   rdf_has(S, rdf:type, Class),
 	    once(rdf(S, _, _, Graph))
 	;   subject_in_graph(Graph, S),
@@ -507,7 +534,7 @@ instance_in_graph(Graph, Class, S, C) :-
 property_count(Graph, S, Count) :-
 	aggregate_all(count, rdf(S, _, _, Graph), Count).
 
-%%	graph_as_resource(+Graph, Options)// is det.
+%!  graph_as_resource(+Graph, Options)// is det.
 %
 %	Show resource info for a graph if it is described.
 
@@ -517,7 +544,7 @@ graph_as_resource(Graph, Options) -->
 	  ;   rdf(_, _, Graph)
 	  ), !
 	},
-	html([ h1([ 'Local view for "',
+    html([ h2([ 'Local view for "',
 		    \location(Graph, _), '"'
 		  ]),
 	       \local_view(Graph, _, Options)
@@ -529,7 +556,7 @@ graph_as_resource(_, _) --> [].
 		 *	  LIST INSTANCES	*
 		 *******************************/
 
-%%	list_instances(+Request)
+%!  list_instances(+Request)
 %
 %	HTTP handler that lists instances that satisfy certain criteria.
 
@@ -549,12 +576,18 @@ list_instances(Request) :-
 				 default(any),
 				 description('Any instance or only bnodes?')
 			       ]),
+                      resource_format(Format,
+                            [ default(DefaultFormat),
+                              atom,
+                              description('Display format as passed to rdf_link//2 ')
+                            ]),
 			  sortBy(Sort,
 				 [ oneof([label,properties]),
 				   default(label),
 				   description('How to sort the result-table')
 				 ])
 			]),
+    setting(resource_format, DefaultFormat),
 	findall(I-PC, instance_in_graph(Graph, Class, Type, I, PC), IPairs),
 	sort_pairs_by_label(IPairs, TableByName),
 	(   Sort == properties
@@ -568,11 +601,12 @@ list_instances(Request) :-
 	reply_html_page(cliopatria(default),
 			title(\instance_table_title(Graph, Class, Sort)),
 			[ h1(\html_instance_table_title(Graph, Class, Sort)),
-			  \instance_table(Table, [resource_format(nslabel)])
+                      \instance_table(Table, [resource_format(Format)])
 			]).
 
 instance_table_title(Graph, Class, Sort) -->
-	{ var(Class) }, !,
+    { var(Class) },
+    !,
 	html('Instances in ~w sorted by ~w'-
 	     [Graph, Sort]).
 instance_table_title(Graph, Class, Sort) -->
@@ -588,12 +622,14 @@ html_instance_table_title(Graph, Class, Sort) -->
 	     ]).
 
 of_class(Class) -->
-	{ var(Class) }, !.
+    { var(Class) },
+    !.
 of_class(Class) -->
-	html([' of class ', \rdf_link(Class)]).
+    html([' of class ', \rdf_link(Class, [role(class)])]).
 
 in_graph(Graph) -->
-	{ var(Graph) }, !.
+    { var(Graph) },
+    !.
 in_graph(Graph) -->
 	html([' in graph ', \graph_link(Graph)]).
 
@@ -618,7 +654,7 @@ instance_table_header -->
 		])).
 
 instance_row(Options, R-C) -->
-	html([ td(\rdf_link(R, Options)),
+    html([ td(\rdf_link(R, [role(inst)|Options])),
 	       td(class(int), C)
 	     ]).
 
@@ -627,7 +663,7 @@ instance_row(Options, R-C) -->
 		 *	     PREDICATES		*
 		 *******************************/
 
-%%	list_predicates(+Request)
+%!  list_predicates(+Request)
 %
 %	List all predicates used in graph, sorted by label.
 
@@ -663,7 +699,7 @@ predicate_table_header -->
 		  th('Range(s)')
 		])).
 
-%%	predicate_row(?Graph, +Pred) is det.
+%!  predicate_row(?Graph, +Pred) is det.
 
 predicate_row(Graph, Pred) -->
 	{ predicate_statistics(Graph, Pred, Triples,
@@ -674,19 +710,22 @@ predicate_row(Graph, Pred) -->
 	  ),
 	  http_link_to_id(list_triples,   Params, PLink)
 	},
-	html([ td(\rdf_link(Pred)),
+    html([ td(\rdf_link(Pred, [role(pred)])),
 	       td(class(int), a(href(PLink), Triples)),
-	       \resources(Subjects, subject, Params, []),
-	       \resources(Objects, object, Params, []),
-	       \resources(Doms, domain, Params, []),
-	       \resources(Ranges, range, Params, [])
+           \resources(Subjects, subject, Params, [role(subj)]),
+           \resources(Objects, object, Params, [role(obj)]),
+           \resources(Doms, domain, Params, [role(domain)]),
+           \resources(Ranges, range, Params, [role(range)])
 	     ]).
 
-resources([], _, _, _) --> !,
+resources([], _, _, _) -->
+    !,
 	html(td(class(empty), -)).
-resources([One], _, _, Options) --> !,
+resources([One], _, _, Options) -->
+    !,
 	html(td(\rdf_link(One, Options))).
-resources(Many, What, Params, _) --> !,
+resources(Many, What, Params, _) -->
+    !,
 	{ (   integer(Many)
 	  ->  Count = Many
 	  ;   length(Many, Count)
@@ -699,12 +738,14 @@ resources(Many, What, Params, _) --> !,
 	predicate_statistics_cache/8.
 
 predicate_statistics(Graph, P, C, Subjects, Objects, Domains, Ranges) :-
-	var(Graph), !,
+    var(Graph),
+    !,
 	predicate_statistics_(Graph, P, C, Subjects, Objects, Domains, Ranges).
 predicate_statistics(Graph, P, C, Subjects, Objects, Domains, Ranges) :-
 	rdf_md5(Graph, MD5),
 	predicate_statistics_cache(MD5, Graph, P, C,
-				   Subjects, Objects, Domains, Ranges), !.
+                               Subjects, Objects, Domains, Ranges),
+    !.
 predicate_statistics(Graph, P, C, Subjects, Objects, Domains, Ranges) :-
 	rdf_md5(Graph, MD5),
 	debug(rdf_browse, 'Recomputing pred stats for ~p in ~w, MD5=~w',
@@ -743,17 +784,26 @@ resource_type_in(List, Graph, T) :-
 	member(URI, List),
 	resource_type(URI, Graph, T).
 
-%%	resource_type(+URI, +Graph, -Type) is det.
+%!  resource_type(+URI, +Graph, -Type) is multi.
 
-resource_type(URI, Graph, T) :-
-	(   URI = literal(Lit)
-	->  (   Lit = type(T, _)
+resource_type(literal(Lit), _, Type) :-
+    !,
+    (   Lit = type(Type, _)
 	    ->	true
-	    ;	rdf_equal(T, rdfs:'Literal')
-	    )
-	;   rdf(URI, rdf:type, T, Graph)
+    ;   rdf_equal(Type, rdfs:'Literal')
+    ).
+resource_type(^^(_, Type0), _, Type) :-
+    !,
+    Type = Type0.
+resource_type(@(_,_), _, Type) :-
+    !,
+    rdf_equal(Type, rdf:langString).
+resource_type(URI, Graph, Type) :-
+    (   string(URI)
+    ->  rdf_equal(Type, xsd:string)
+    ;   rdf(URI, rdf:type, Type, Graph)
 	*-> true
-	;   rdf_equal(T, rdfs:'Resource')
+    ;   rdf_equal(Type, rdfs:'Resource')
 	).
 
 
@@ -761,7 +811,7 @@ resource_type(URI, Graph, T) :-
 		 *	  LIST RESOURCES	*
 		 *******************************/
 
-%%	list_predicate_resources(+Request)
+%!  list_predicate_resources(+Request)
 %
 %	List resources related to a predicate.   The  _side_ argument is
 %	one of:
@@ -1095,13 +1145,14 @@ list_resource(URI, Options) -->
 	     ]).
 
 
-%%	location(+URI, ?Graph) is det.
+%!  location(+URI, ?Graph) is det.
 %
 %	Show the URI. If the URI is a blank node, show its context using
 %	Turtle notation.
 
 location(URI, _Graph) -->
-	{ rdf_is_bnode(URI), !,
+    { rdf_is_bnode(URI),
+      !,
 	  findall(Path, path_to_non_bnode(URI, Path), Paths),
 	  sort_by_length(Paths, PathsByLen),
 	  partition(starts_bnode, PathsByLen, StartsBNode, StartsReal),
@@ -1114,21 +1165,24 @@ location(URI, _Graph) -->
 location(URI, _) -->
 	html(URI).
 
-bnode_location([P-URI]) --> !,
-	html([ '[', \rdf_link(P, []), ' ',
-	            \rdf_link(URI),
+bnode_location([P-URI]) -->
+    !,
+    html([ '[', \rdf_link(P,  [role(pred)]), ' ',
+                \rdf_link(URI,[role(bnode)]),
 	       ']'
 	     ]).
-bnode_location([P-URI|More]) --> !,
+bnode_location([P-URI|More]) -->
+    !,
 	html([ '[', div(class(bnode_attr),
-			[ div(\rdf_link(P, [])),
-			  div(\rdf_link(URI))
+                    [ div(\rdf_link(P,  [ role(pred)])),
+                      div(\rdf_link(URI,[ role(bnode)]))
 			]), ' ',
 	       \bnode_location(More),
 	       ']'
 	     ]).
-bnode_location([URI|More]) --> !,
-	rdf_link(URI),
+bnode_location([URI|More]) -->
+    !,
+    rdf_link(URI, [role(subj)]),
 	html(' '),
 	bnode_location(More).
 bnode_location([]) -->
@@ -1553,7 +1607,7 @@ context(skos:mappingRelation).
 irdf_o(P):-compound(P)->functor(P,_,2);atomic(P).
 vrdf_o(P):-var(P);irdf_o(P).
 
-%%	list_triples(+Request)
+%!  list_triples(+Request)
 %
 %	List  triples  for  a  given    predicate.  The  triple-set  can
 %	optionally be filtered on the graph, type of the subject or type
@@ -1599,11 +1653,13 @@ rdf_in_domain(S,P,O,Dom,Graph) :-
 	rdf_has(S, rdf:type, Dom).
 
 rdf_in_range(S,P,O,Lit,Graph) :-
-	rdf_equal(rdfs:'Literal', Lit), !,
+    rdf_equal(rdfs:'Literal', Lit),
+    !,
 	O = literal(_),
 	rdf(S, P, O, Graph).
 rdf_in_range(S,P,O,Rng,Graph) :-
-	rdf_equal(rdfs:'Resource', Rng), !,
+    rdf_equal(rdfs:'Resource', Rng),
+    !,
 	rdf(S, P, O, Graph),
 	atom(O).
 rdf_in_range(S,P,O,Rng,Graph) :-
@@ -1620,16 +1676,18 @@ triple_header(Count, Pred, Dom, Range, Graph) -->
 	     ]).
 
 with_domain(Dom) -->
-	{ var(Dom) }, !.
+    { var(Dom) },
+    !.
 with_domain(Dom) -->
-	html([' with domain ', \rdf_link(Dom, [])]).
+    html([' with domain ', \rdf_link(Dom, [role(domain)])]).
 
 with_range(Range) -->
-	{ var(Range) }, !.
+    { var(Range) },
+    !.
 with_range(Range) -->
-	html([' with range ', \rdf_link(Range, [])]).
+    html([' with range ', \rdf_link(Range, [role(range)])]).
 
-%%	triple_table(+Triples, +Predicate, +Options)// is det.
+%!  triple_table(+Triples, +Predicate, +Options)// is det.
 %
 %	Show a list  of  triples.  If   Predicate  is  given,  omit  the
 %	predicate from the table.
@@ -1656,18 +1714,19 @@ spo_header(_) -->
 		])).
 
 spo_row(Options, Pred, rdf(S,_,O)) -->
-	{ nonvar(Pred) }, !,
-	html([ td(class(subject), \rdf_link(S, Options)),
-	       td(class(object),  \rdf_link(O, Options))
+    { nonvar(Pred) },
+    !,
+    html([ td(class(subject), \rdf_link(S, [role(subj)|Options])),
+           td(class(object),  \rdf_link(O, [role(obj) |Options]))
 	     ]).
 spo_row(Options, _, rdf(S,P,O)) -->
-	html([ td(class(subject),   \rdf_link(S, Options)),
-	       td(class(predicate), \rdf_link(P, Options)),
-	       td(class(object),    \rdf_link(O, Options))
+    html([ td(class(subject),   \rdf_link(S, [role(subj)|Options])),
+           td(class(predicate), \rdf_link(P, [role(pred)|Options])),
+           td(class(object),    \rdf_link(O, [role(obj) |Options]))
 	     ]).
 
 
-%%	list_triples_with_object(+Request)
+%!  list_triples_with_object(+Request)
 %
 %	HTTP handler that creates a  subject/predicate table for triples
 %	that have the gived _object_. Object   is specified using either
@@ -1687,20 +1746,35 @@ list_triples_with_object(Request) :-
 				       ]),
 			  graph(Graph, [optional(true),
 					description('Limit to a given graph (URI)')
+                                   ]),
+                      sortBy(Sort,
+                             [ oneof([label, subject, predicate]),
+                               default(label),
+                               description('How to sort the result')
 				       ])
 			]),
 	target_object(RObject, LObject, Object),
-	list_triples_with_object(Object, P, Graph).
+    list_triples_with_object(Object, P, Graph, [sortBy(Sort)]).
 
 target_object(RObject, _LObject, RObject) :-
-	atom(RObject), !.
+    atom(RObject),
+    !.
 target_object(_, LObject, Object) :-
-	atom(LObject), !,
-	term_to_atom(Object, LObject).
+    atom(LObject),
+    !,
+    term_to_atom(Object0, LObject),
+    rdf11_rdf_db(Object0, Object).
 target_object(_, _, _) :-
 	throw(existence_error(http_parameter, r)).
 
-%%	list_triples_with_literal(+Request)
+rdf11_rdf_db(^^(String, Type), literal(type(Type, Atom))) :-
+    atom_string(Atom, String).
+rdf11_rdf_db(@(String, Lang), literal(lang(Lang, Atom))) :-
+    atom_string(Atom, String).
+rdf11_rdf_db(literal(Lit),   literal(Lit)).
+
+
+%!  list_triples_with_literal(+Request)
 %
 %	List triples that have a literal   that matches the q-parameter.
 %	This is used for  finding   objects  through  the autocompletion
@@ -1713,37 +1787,46 @@ list_triples_with_literal(Request) :-
 			     description('Object as resource (URI)')
 			    ])
 			]),
-	list_triples_with_object(literal(Text), _, _).
+    list_triples_with_object(literal(Text), _, _, [sortBy(subject)]).
 
 
-list_triples_with_object(Object, P, Graph) :-
-	findall(S-P, rdf(S,P,Object,Graph), Pairs0),
-	sort(Pairs0, Pairs),
-	sort_pairs_by_label(Pairs, Sorted),
+list_triples_with_object(Object, P, Graph, Options) :-
+    findall(S-P, rdf(S,P,Object,Graph), Pairs),
+    (   option(sortBy(label), Options)
+    ->  sort_pairs_by_label(Pairs, Sorted)
+    ;   option(sortBy(predicate), Options)
+    ->  transpose_pairs(Pairs, Transposed), % flip pairs and sort on new key
+        flip_pairs(Transposed, Sorted)      % flip back without sort
+    ;   sort(Pairs, Sorted)
+    ),
 	length(Pairs, Count),
 	label_of(Object, OLabel),
 	reply_html_page(cliopatria(default),
 			title('Triples with object ~w'-[OLabel]),
-			[ h1(\otriple_header(Count, Object, P, Graph)),
+                    [ h1(\otriple_header(Count, Object, P, Graph, Options)),
 			  \otriple_table(Sorted, Object, [resource_format(nslabel)])
 			]).
 
-otriple_header(Count, Object, Pred, Graph) -->
+otriple_header(Count, Object, Pred, Graph, Options) -->
+    { option(sortBy(SortBy), Options) },
 	html([ 'Table for the ~D triples'-[Count],
 	       \with_object(Object),
 	       \on_predicate(Pred),
-	       \in_graph(Graph)
+           \in_graph(Graph),
+           \sorted_by(SortBy)
 	     ]).
 
 with_object(Obj) -->
-	{ var(Obj)}, !.
+    { var(Obj)},
+    !.
 with_object(Obj) -->
-	html([' with object ', \rdf_link(Obj)]).
+    html([' with object ', \rdf_link(Obj, [role(obj)])]).
 
 on_predicate(P) -->
-	{ var(P) }, !.
+    { var(P) },
+    !.
 on_predicate(P) -->
-	html([' on predicate ', \rdf_link(P, [])]).
+    html([' on predicate ', \rdf_link(P, [role(pred)])]).
 
 
 otriple_table(SPList, Object, Options) -->
@@ -1762,8 +1845,8 @@ sp_header(_) -->
 		])).
 
 sp_row(Options, _O, S-P) -->
-	html([ td(class(subject),   \rdf_link(S, Options)),
-	       td(class(predicate), \rdf_link(P, Options))
+    html([ td(class(subject),   \rdf_link(S, [role(subj)|Options])),
+           td(class(predicate), \rdf_link(P, [role(pred)|Options]))
 	     ]).
 
 
@@ -1774,7 +1857,7 @@ sp_row(Options, _O, S-P) -->
 		 *	      RDF UTIL		*
 		 *******************************/
 
-%%	sort_by_label(+URIs, -Sorted) is det.
+%!  sort_by_label(+URIs, -Sorted) is det.
 %
 %	Sort a list of URIs by their label using locale-based ordering.
 
@@ -1791,13 +1874,14 @@ label_sort_key(URI, Key) :-
 	).
 
 label_of(URI, Label) :-
-	rdf_is_resource(URI), !,
+    rdf_is_resource(URI),
+!,
 	rdf_display_label(URI, Label).
 label_of(Literal, Label) :-
 	literal_text(Literal, Label).
 
 
-%%	sort_triples_by_label(+Triples, -Sorted)
+%!  sort_triples_by_label(+Triples, -Sorted)
 %
 %	Sort a list of rdf(S,P,O) by the labels.
 
@@ -1811,7 +1895,7 @@ key_triple_by_label(rdf(S,P,O), rdf(SK,PK,OK)) :-
 	label_sort_key(P, PK),
 	label_sort_key(O, OK).
 
-%%	sort_pairs_by_label(+Pairs, -Sorted)
+%!  sort_pairs_by_label(+Pairs, -Sorted)
 %
 %	Sort a pair-list where the keys are resources by their label.
 
@@ -1828,7 +1912,7 @@ key_label_sort_key(R-_, Key) :-
 		 *	  CUSTOMIZATION		*
 		 *******************************/
 
-%%	p_label(+Id, -Label)
+%!  p_label(+Id, -Label)
 %
 %	Defines the visible label for a property.
 %
@@ -1856,7 +1940,7 @@ p_label(type_count(G),
 		 *	      SEARCH		*
 		 *******************************/
 
-%%	search(+Request)
+%!  search(+Request)
 %
 %	HTTP handler to search for triples   that contain a literal that
 %	matches a query.
@@ -1890,7 +1974,8 @@ search(Request) :-
 find_literals(QueryText, [Query], exact(Query)) :-
 	% Check if Q starts and ends with double quotes:
 	sub_atom(QueryText,0,1,Remainder,'"'),
-	sub_atom(QueryText,Remainder,1,0,'"'),!,
+    sub_atom(QueryText,Remainder,1,0,'"'),
+    !,
 	sub_atom(QueryText,1,_,1,Query).
 find_literals(QueryText, Literals, Query) :-
 	% if not quoted, perform search on tokenized query
@@ -1909,19 +1994,21 @@ query(Query) -->
 eos([],[]).
 
 simple_query(Token) -->
-	['"',Token,'"'], !.
+    ['"',Token,'"'],
+    !.
 simple_query(not(Token)) -->
 	[-, Token].
 simple_query(case(Token)) -->
 	[Token].
 
-%%	literal_triples(+ListOfLiterals, +Filter, -Triples) is det.
+%!  literal_triples(+ListOfLiterals, +Filter, -Triples) is det.
 %
 %	Find the list of triples with   a  literal in ListOfLiterals and
 %	whose subject satisfies Filter.
 
 literal_triples(Literals, Filter, Triples) :-
-	sub_term(graph(Graph), Filter), !,
+    sub_term(graph(Graph), Filter),
+    !,
 	phrase(ltriples(Literals, Graph, Filter), Triples).
 literal_triples(Literals, Filter, Triples) :-
 	phrase(ltriples(Literals, Filter), Triples).
@@ -1943,7 +2030,7 @@ ltriples([H|T], F) -->
 		)),
 	ltriples(T, F).
 
-%%	rdf_table(+Triples, +Options)// is det.
+%!  rdf_table(+Triples, +Options)// is det.
 %
 %	Emit a table of triples.
 %
@@ -1960,9 +2047,9 @@ rdf_table(Triples, Options) -->
 		   ])).
 
 triple(rdf(S,P,O)) -->
-	html([ td(class(subject),   \rdf_link(S)),
-	       td(class(predicate), \rdf_link(P)),
-	       td(class(object),    \rdf_link(O))
+    html([ td(class(subject),   \rdf_link(S, [role(subj)])),
+           td(class(predicate), \rdf_link(P, [role(pred)])),
+           td(class(object),    \rdf_link(O, [role(obj) ]))
 	     ]).
 
 
@@ -1970,7 +2057,7 @@ triple(rdf(S,P,O)) -->
 		 *     HTML INFRASTRUCTURE	*
 		 *******************************/
 
-%%	html_property_table(+Template, :Goal)// is det.
+%!  html_property_table(+Template, :Goal)// is det.
 %
 %	Create a table for all instantiations of Template for which Goal
 %	is true. Template is a term row(C1,   C2, ...). The first column
@@ -2004,7 +2091,8 @@ pcells([H|T]) -->
 	pcells(T).
 
 pcell(int(Value)) -->
-	{ integer(Value) }, !,
+    { integer(Value) },
+    !,
 	nc('~D', Value).
 pcell(H) -->
 	{ compound(H),
@@ -2015,8 +2103,8 @@ pcell(H) -->
 	html(td(H)).
 
 
-%%	table_rows(:Goal, +DataList)// is det.
-%%	table_rows(:Goal, +DataList, +MaxTop, +MaxBottom)// is det.
+%!  table_rows(:Goal, +DataList)// is det.
+%!  table_rows(:Goal, +DataList, +MaxTop, +MaxBottom)// is det.
 %
 %	Emit a number of table rows (=tr=).   The content of each row is
 %	created by calling call(Goal, Data)  as   a  DCG.  The rows have
@@ -2032,7 +2120,8 @@ pcell(H) -->
 table_rows(Goal, Rows) -->
 	table_rows(Rows, Goal, 1, -1).
 
-table_rows_top_bottom(Goal, Rows, inf, inf) --> !,
+table_rows_top_bottom(Goal, Rows, inf, inf) -->
+    !,
 	table_rows(Rows, Goal, 1, -1).
 table_rows_top_bottom(Goal, Rows, MaxTop, MaxBottom) -->
 	{ length(Rows, Count) },
@@ -2068,7 +2157,7 @@ delete_list_prefix(N, [_|T], List) :-
 	N2 is N - 1,
 	delete_list_prefix(N2, T, List).
 
-%%	list_prefixes(+Request)
+%!  list_prefixes(+Request)
 %
 %	List known RDF prefixes in various formats
 
@@ -2085,13 +2174,21 @@ list_prefixes(Request) :-
 		rdf_current_ns(Prefix, URI),
 		Pairs),
 	keysort(Pairs, Sorted),
+    prefix_actions(Options),
 	reply_html_page(cliopatria(default),
 			title('RDF prefixes (namespaces)'),
 			[ h1('Known RDF prefixes (namespaces)'),
 			  \explain_prefixes,
-			  \ns_table(Format, Sorted),
+                      \prefix_table(Format, Sorted, Options),
 			  \prefix_formats(Formats, Format, Request)
 			]).
+
+prefix_actions([edit(true)]) :-
+    logged_on(User),
+    !,
+    catch(check_permission(User, write(_, del_prefix(_))), _, fail),
+    !.
+prefix_actions([]).
 
 explain_prefixes -->
 	html(p([ 'The following prefixes are known and may be used \c
@@ -2117,12 +2214,12 @@ alt_formats([H|T], Request) -->
 	    alt_formats(T, Request)
 	).
 
-ns_table(html, Pairs) -->
+prefix_table(html, Pairs, Options) -->
 	html(table(class(block),
 		   [ \prefix_table_header,
-		     \table_rows(prefix_row, Pairs)
+                 \table_rows(prefix_row(Options), Pairs)
 		   ])).
-ns_table(turtle, Pairs) -->
+prefix_table(turtle, Pairs, _) -->
 	html(pre(class(code),
 		 \turtle_prefixes(Pairs))).
 
@@ -2131,7 +2228,19 @@ prefix_table_header -->
 		  th('URI')
 		])).
 
-prefix_row(Prefix-URI) -->
+prefix_row(Options, Prefix-URI) -->
+    { option(edit(true), Options),
+      !,
+      http_link_to_id(del_prefix, [prefix(Prefix)], HREF)
+    },
+    html([ td(Prefix),
+           td(URI),
+           td(a([ href(HREF),
+                  class('delete'),
+                  title('Remove prefix')
+                ], '\u232B'))
+         ]).
+prefix_row(_Options, Prefix-URI) -->
 	html([ td(Prefix),
 	       td(URI)
 	     ]).
@@ -2152,82 +2261,4 @@ turtle_prefixes([], _) --> [].
 turtle_prefixes([Prefix-URI|T], Col) -->
 	html('@prefix ~t~w: ~*|<~w> .~n'-[Prefix, Col, URI]),
 	turtle_prefixes(T, Col).
-
-
-graph_to_dirfile(FO,F):-atom_concat('file://',F,FO),!.
-graph_to_dirfile(F,F).
-
-
-insert_text_file_with_line_numbers(Graph,Request)--> {graph_to_dirfile(Graph,File)},   
-   insert_text_file_with_line_numbers(Graph,File,Request).
-
-insert_text_file_with_line_numbers(_Graph,File,_Request) -->
- {exists_file(File),sformat(String,'/help/source/doc~w?format_comments=false&show=src',[File])}, 
-   html([a([href(String)],[p(String)]),iframe([src(String),width("100%"),height("800")],[])]).
-
-% maybe use export_graph_schema?
-insert_text_file_with_line_numbers(Graph,_File,_Request) -->  
- {sformat(String,'/browse/write_owl?graph=~w&mimetype=default&format=trig',[Graph])}, 
-   html([a([href(String)],[p(String)]),iframe([src(String),width("100%"),height("800")],[])]).
-
-
-write_owl_param(graph,
-	   [ description('Name of the graph')]).
-write_owl_param(format,
-	   [ oneof([turtle,
-		    canonical_turtle,
-		    rdfxml,
-                    trig,
-                    ntriples
-		   ]),
-	     default(turtle),
-	     description('Output serialization')
-	   ]).
-write_owl_param(mimetype,
-	   [ default(default),
-	     description('MIME-type to use. If "default", it depends on format')
-	   ]).
-
-write_owl(Request) :-
-	http_parameters(Request,
-			[ graph(Graph),
-			  format(Format),
-			  mimetype(Mime)
-			],
-			[  attribute_declarations(write_owl_param)
-			]
-		       ),
-	authorized(read(default, download(Graph))),
-	send_owl(Graph, Format, Mime).
-
-default_mime_type(turtle, text/turtle).
-default_mime_type(canonical_turtle, text/turtle).
-default_mime_type(rdfxml, text/turtle).
-default_mime_type(rdfxml, application/'rdf+xml').
-default_mime_type(_, text/turtle).
-
-send_owl(Graph, Format, default) :- !,
-       default_mime_type(Format, MimeType),
-	send_owl(Graph, Format, MimeType).
-
-send_owl(Graph, Format, MimeType) :- !,
-	format('Transfer-Encoding: chunked~n'),
-	format('Content-type: ~w; charset=UTF8~n~n', [MimeType]),
-	send_owl(Graph, Format).
-
-send_owl(Graph, turtle) :- !,
-	rdf_save_turtle(stream(current_output),
-			[ expand(api_export:triple_in_graph(graph(Graph))),
-                          graph(Graph),
-			  base(Graph)
-			]).
-
-send_owl(Graph, canonical_turtle) :- !,
-	rdf_save_canonical_turtle(stream(current_output), [graph(Graph)]).
-send_owl(Graph, rdfxml) :- !,
-	rdf_save(stream(current_output), [graph(Graph)]).
-send_owl(Graph, trig) :- !,
-	rdf_save_trig(stream(current_output), [graph(Graph),graphs([Graph])]).
-send_owl(Graph, ntriples) :- !,
-	rdf_save_ntriples(stream(current_output), [graph(Graph),graphs([Graph])]).
 
