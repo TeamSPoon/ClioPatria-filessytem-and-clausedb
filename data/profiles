@@ -1,0 +1,23 @@
+created(1497197617.4006336).
+assert(profile('ecf118a2-4ec0-11e7-ac33-777311d92cf0')).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',name,"dmiles")).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',nick_name,"dmiles")).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',email,"")).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',identity_provider,local)).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',external_identity,"dmiles")).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',email_verified,true)).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',last_peer,"10.0.0.153")).
+assert(profile_attribute('ecf118a2-4ec0-11e7-ac33-777311d92cf0',last_login,1497197617)).
+assert(profile('07541780-4ec1-11e7-832e-236f65005e0c')).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',name,"Douglas Miles")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',given_name,"Douglas")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',family_name,"Miles")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',avatar,"https://lh6.googleusercontent.com/-k17gWv6vMB8/AAAAAAAAAAI/AAAAAAAADi4/HfFg3AYDHbo/s96-c/photo.jpg")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',identity_provider,google)).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',external_identity,"106172798703629954767")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_peer,"10.0.0.153")).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_login,1497197662)).
+retractall(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_login,_),1).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_login,1497197790)).
+retractall(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_login,_),1).
+assert(profile_attribute('07541780-4ec1-11e7-832e-236f65005e0c',last_login,1497200609)).
