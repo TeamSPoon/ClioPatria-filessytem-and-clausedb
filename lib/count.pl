@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(count,
+:- module(clio_count,
           [ proof_count/2,              % :Goal, -Count
             proof_count/3,              % :Goal, +Max, -Count
             answer_count/3,             % ?Var, :Goal, -Count

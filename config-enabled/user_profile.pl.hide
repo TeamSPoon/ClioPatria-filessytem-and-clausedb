@@ -1,0 +1,3 @@
+/* Linked config file */
+:- module(link_user_profile_conf, []).
+:- reexport(config_available(user_profile)).
