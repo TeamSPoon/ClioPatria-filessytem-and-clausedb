@@ -47,7 +47,7 @@
             openid_server_property/2,   % ?Server, ?Property
             openid_server_properties/2, % ?Server, ?Property
 
-            user_property/2,            % ?Name, ?Property
+            user_property_clio/2,            % ?Name, ?Property
             check_permission/2,         % +User, +Operation
             validate_password/2,        % +User, +Password
             password_hash/2,            % +Password, ?Hash
@@ -257,8 +257,8 @@ openid_server_property(Server, Property) :-
 current_user(User) :-
     user(User, _).
 
-%!  user_property(?User, ?Property) is nondet.
-%!  user_property(+User, +Property) is semidet.
+%!  user_property_clio(?User, ?Property) is nondet.
+%!  user_property_clio(+User, +Property) is semidet.
 %
 %   True if Property is a defined property on User.  In addition to
 %   properties explicitely stored with users, we define:
@@ -273,13 +273,16 @@ current_user(User) :-
 %           * openid_server(Server)
 %           Refers to the OpenID server that validated the login
 
-user_property(User, Property) :-
+user_property_clio(User, Property) :-
     nonvar(User), nonvar(Property),
     !,
     uprop(Property, User),
     !.
-user_property(User, Property) :-
+user_property_clio(User, Property) :-
     uprop(Property, User).
+
+:- multifile(system:user_property/2).
+system:user_property(User, Property):- user_property_clio(User, Property).
 
 uprop(session(SessionID), User) :-
     (   nonvar(SessionID)           % speedup
@@ -366,7 +369,7 @@ password_hash(Password, Hash) :-
 
 logged_on(User) :-
     http_in_session(SessionID),
-    user_property(User, session(SessionID)),
+    user_property_clio(User, session(SessionID)),
     !.
 logged_on(User) :-
     http_current_request(Request),
@@ -421,7 +424,7 @@ authorized(Action) :-
 
 check_permission(User, Operation) :-
     \+ denied(User, Operation),
-    user_property(User, allow(Operations)),
+    user_property_clio(User, allow(Operations)),
     memberchk(Operation, Operations),
     !.
 check_permission(_, _) :-

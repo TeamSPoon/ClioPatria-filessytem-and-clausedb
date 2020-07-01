@@ -1,4 +1,5 @@
 :- module(conf_debug, [ tmon/0 ]).
+:- use_module(library(edit)).
 :- use_module(library(debug)).
 
 /** <module> Set options for development

@@ -39,6 +39,7 @@
             http_server_statistics//0,
             http_server_pool_table//0
           ]).
+:- use_module(library(dialect)).
 :- use_module(library(option)).
 :- use_module(library(pairs)).
 :- use_module(library(semweb/rdf_db)).
@@ -48,6 +49,7 @@
 :- use_module(library(http/html_head)).
 :- use_module(user(user_db)).
 :- use_module(components(basics)).
+:- system:use_module(library(broadcast)).
 
 /** <module> Server statistics components
 
