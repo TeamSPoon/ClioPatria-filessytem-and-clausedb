@@ -1,6 +1,8 @@
 :- module(conf_debug, [ tmon/0 ]).
 :- use_module(library(edit)).
 :- use_module(library(debug)).
+:- use_module(library(pce_emacs)).
+
 
 /** <module> Set options for development
 
@@ -43,7 +45,7 @@ particular, it implements the following methods:
 
 prepare_editor :-
 	current_prolog_flag(editor, pce_emacs), !,
-	start_emacs.
+	start_emacs:start_emacs.
 prepare_editor.
 
 :- prepare_editor.
