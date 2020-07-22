@@ -1,0 +1,165 @@
+
+        config-available/010-packs.pl
+        config-available/020-yaz-namespaces.pl
+        config-available/025-amalgame.pl
+        config-available/EDM.pl
+        config-available/Tracer.cnf
+        config-available/accurator.pl.hide
+        config-available/ag_lod.pl
+        config-available/ag_menu.pl
+        config-available/ag_modules.pl
+        config-available/ag_preferences.pl
+        config-available/ag_skin.pl
+        config-available/ag_strat_prov_graph_viz.pl
+        config-available/ann_preferences.pl
+        config-available/annotation_service.pl
+        config-available/autocompletion.pl
+        config-available/cloud.pl
+        config-available/cluster_search.pl
+        config-available/cluster_search_ui.pl
+        config-available/command.pl
+        config-available/config.done
+        config-available/cpack_repository.pl
+        config-available/cpack_server.pl
+        config-available/data/
+        config-available/econnect.pl
+        config-available/email.pl.hide
+        config-available/enable_autocomplete.pl
+        config-available/find_resource.pl
+        config-available/foaf_user.pl
+        config-available/image_annotation.pl
+        config-available/isearch.pl
+        config-available/jquery.pl
+        config-available/load_rma_example.pl
+        config-available/media_cache.pl
+        config-available/network-20200712164038.pl.bak
+        config-available/oac_graphviz.pl
+        config-available/opmv.pl
+        config-available/pengines-20200712164046.pl.bak
+        config-available/pirates.pl.hide
+        config-available/prov.pl
+        config-available/rdf_qa.pl
+        config-available/skos.pl
+        config-available/skos_browser.pl
+        config-available/tag_matcher.pl
+        config-available/versioned_graph.pl
+        config-available/versioned_graphviz.pl
+        config-available/waisda_search.pl
+        config-available/yaz.pl.hide
+        config-available/yui3.pl
+        config-enabled-prologmud/
+        config-enabled/020-prefixes.pl
+        config-enabled/ag_lod.pl
+        config-enabled/ag_preferences.pl
+        config-enabled/bm.js
+        config-enabled/cache.pl
+        config-enabled/lod.pl
+        config-enabled/logging.pl
+        config-enabled/rdfpath.pl
+        config-enabled/winpath.pl
+        cpack/EDM/
+        cpack/accurator/
+        cpack/amalgame/
+        cpack/annotation_service/
+        cpack/autocompletion/
+        cpack/cloud/
+        cpack/cluster_search/
+        cpack/cluster_search_ui/
+        cpack/command/
+        cpack/cpack_repository/
+        cpack/ecdemo/
+        cpack/find_resource/
+        cpack/foaf/
+        cpack/foaf_user/
+        cpack/image_annotation/
+        cpack/isearch/
+        cpack/jquery/
+        cpack/media_cache/
+        cpack/opmv/
+        cpack/owl/
+        cpack/pirates/
+        cpack/prov/
+        cpack/rda_gr2/
+        cpack/rdf-mt/
+        cpack/rdf_qa/
+        cpack/skos/
+        cpack/skos_browser/
+        cpack/statistics/
+        cpack/swish.dead/
+        cpack/tag_matcher/
+        cpack/versioned_graph/
+        cpack/void/
+        cpack/webaccess/
+        cpack/xmlrdf/
+        cpack/yaz/
+        cpack/yui3/
+        gv.git/
+        httpd.log
+        robots.txt
+        settings.db
+
+
+(base) root@gitlab:/opt/logicmoo_workspace/packs_web/ClioPatria# ls -l config-enabled-prologmud/
+total 176
+-rw-rw-r-- 1 prologmud_server prologmud_server 5122 Jun 11 09:03 010-packs.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  522 Jun 11 09:03 020-prefixes.pl
+lrwxrwxrwx 1 root             root               51 May  4 00:28 020-yaz-namespaces.pl -> ../cpack/yaz/config-available/020-yaz-namespaces.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 2357 Jun 11 09:03 025-amalgame.pl
+lrwxrwxrwx 1 root             root               48 May  4 00:30 accurator.pl.hide -> ../cpack/accurator/config-available/accurator.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 2551 Jun 11 09:03 ag_lod.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  520 Jun 11 09:03 ag_menu.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 1954 Jun 11 09:03 ag_modules.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 1497 Jun 11 09:03 ag_preferences.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 2658 Jun 11 09:03 ag_skin.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 4091 Jun 11 09:03 ag_strat_prov_graph_viz.pl
+lrwxrwxrwx 1 root             root               66 May  4 00:30 annotation_service.pl -> ../cpack/annotation_service/config-available/annotation_service.pl
+lrwxrwxrwx 1 root             root               61 May  4 00:30 ann_preferences.pl -> ../cpack/image_annotation/config-available/ann_preferences.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  227 Jun 11 09:03 autocompletion.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  207 Jun 11 09:03 cloud.pl
+lrwxrwxrwx 1 root             root               58 May  4 00:30 cluster_search.pl -> ../cpack/cluster_search/config-available/cluster_search.pl
+lrwxrwxrwx 1 root             root               64 May  4 00:30 cluster_search_ui.pl -> ../cpack/cluster_search_ui/config-available/cluster_search_ui.pl
+lrwxrwxrwx 1 root             root               44 May  4 00:28 command.pl -> ../cpack/command/config-available/command.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  477 Jun 11 09:03 config.done
+-rw-rw-r-- 1 prologmud_server prologmud_server   97 Jun 11 09:03 config.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 1978 Jun 11 09:03 cpack_repository.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  229 Jun 11 09:03 cpack_server.pl
+drwxrwxr-x 2 prologmud_server prologmud_server 4096 Jun 11 09:03 data
+-rw-rw-r-- 1 prologmud_server prologmud_server 2416 Jun 11 09:03 econnect.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  974 Jun 11 09:03 EDM.pl
+-rw-r--r-- 1 root             root             3271 Jun 11 09:03 email.pl.hide
+lrwxrwxrwx 1 root             root               65 May  4 00:30 enable_autocomplete.pl -> ../cpack/image_annotation/config-available/enable_autocomplete.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  140 Jun 11 09:03 find_resource.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  198 Jun 11 09:03 flint.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  354 Jun 11 09:03 foaf_user.pl
+lrwxrwxrwx 1 root             root               62 May  4 00:30 image_annotation.pl -> ../cpack/image_annotation/config-available/image_annotation.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  672 Jun 11 09:03 isearch.pl
+lrwxrwxrwx 1 root             root               42 May  4 00:28 jquery.pl -> ../cpack/jquery/config-available/jquery.pl
+lrwxrwxrwx 1 root             root               51 May  4 00:32 load_mbh_example.pl -> ../cpack/vumix/config-available/load_mbh_example.pl
+lrwxrwxrwx 1 root             root               62 May  4 00:30 load_rma_example.pl -> ../cpack/image_annotation/config-available/load_rma_example.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 1509 Jun 11 09:03 lod.pl
+lrwxrwxrwx 1 root             root               52 May  4 00:23 media_cache.pl -> ../cpack/media_cache/config-available/media_cache.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 3483 Jun 11 09:03 network.pl
+lrwxrwxrwx 1 root             root               60 May  4 00:30 oac_graphviz.pl -> ../cpack/annotation_service/config-available/oac_graphviz.pl
+lrwxrwxrwx 1 root             root               38 May  4 00:32 opmv.pl -> ../cpack/opmv/config-available/opmv.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 2436 Jun 11 09:03 pengines.pl
+lrwxrwxrwx 1 root             root               44 May  4 00:30 pirates.pl.hide -> ../cpack/pirates/config-available/pirates.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  132 Jun 11 09:03 prov.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  949 Jun 11 09:03 rdfpath.pl
+lrwxrwxrwx 1 prologmud_server prologmud_server   42 Jun  6  2018 rdf_qa.pl -> ../cpack/rdf_qa/config-available/rdf_qa.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  698 Jun 11 09:03 README.txt
+-rw-rw-r-- 1 prologmud_server prologmud_server  429 Jun 11 09:03 skos_browser.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  492 Jun 11 09:03 skos.pl
+-rw-r--r-- 1 root             root             1963 Jun 11 09:03 swish.pl
+lrwxrwxrwx 1 root             root               40 May  4 00:28 swish.pl.hide -> ../cpack/swish/config-available/swish.pl
+lrwxrwxrwx 1 root             root               52 May  4 00:28 tag_matcher.pl -> ../cpack/tag_matcher/config-available/tag_matcher.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server  309 Jun 11 09:03 Tracer.cnf
+lrwxrwxrwx 1 root             root               58 May  4 00:28 trill_on_swish.pl -> ../cpack/trill_on_swish/config-available/trill_on_swish.pl
+lrwxrwxrwx 1 root             root               47 May  4 00:28 user_profile.pl -> ../cpack/swish/config-available/user_profile.pl
+lrwxrwxrwx 1 root             root               60 May  4 00:30 versioned_graph.pl -> ../cpack/versioned_graph/config-available/versioned_graph.pl
+lrwxrwxrwx 1 root             root               63 May  4 00:30 versioned_graphviz.pl -> ../cpack/versioned_graph/config-available/versioned_graphviz.pl
+lrwxrwxrwx 1 root             root               40 May  4 00:32 vumix.pl.hide -> ../cpack/vumix/config-available/vumix.pl
+lrwxrwxrwx 1 root             root               42 May  4 00:28 waisda.pl.hide -> ../cpack/waisda/config-available/waisda.pl
+lrwxrwxrwx 1 root             root               46 May  4 00:28 waisda_search.pl -> ../cpack/yaz/config-available/waisda_search.pl
+lrwxrwxrwx 1 root             root               36 May  4 00:28 yaz.pl.hide -> ../cpack/yaz/config-available/yaz.pl
+-rw-rw-r-- 1 prologmud_server prologmud_server 2593 Jun 11 09:03 yui3.pl
+
